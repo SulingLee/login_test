@@ -1,0 +1,83 @@
+<!-- minimal working login with detailed proxy troubleshooting -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login with First-Time Password Setup and Proxy</title>
+</head>
+<body>
+    <h2>Login to Math App</h2>
+    <form id="login-form">
+        <label>Username:</label>
+        <input type="text" id="username" required>
+        <label>Password:</label>
+        <input type="password" id="password" required>
+        <button type="submit">Login / Set Password</button>
+    </form>
+
+    <div id="progress-info" style="display:none; margin-top:20px;">
+        <h3>Welcome, <span id="user-name"></span>!</h3>
+        <p>Last recorded progress: <span id="progress-status"></span></p>
+    </div>
+
+    <script>
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            console.log("Attempting to contact proxy with:", username);
+
+            fetch(`/.netlify/functions/proxy-google-apps-script?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&setpassword=true`)
+                .then(async response => {
+                    console.log("Proxy response status:", response.status);
+
+                    if (response.status === 404) {
+                        throw new Error("Proxy function returned 404. Check function name and deployment.");
+                    }
+
+                    const text = await response.text();
+                    console.log("Raw response from proxy:", text);
+
+                    let data;
+
+                    try {
+                        const jsonMatch = text.match(/<pre>([\s\S]*)<\/pre>/);
+                        if (jsonMatch && jsonMatch[1]) {
+                            data = JSON.parse(jsonMatch[1]);
+                        } else {
+                            data = JSON.parse(text);
+                        }
+                    } catch (err) {
+                        console.error("Could not parse response as JSON:", text);
+                        throw new Error("Invalid JSON received from proxy.");
+                    }
+
+                    if (data.message) {
+                        alert(data.message);
+                    } else if (data.progress) {
+                        localStorage.setItem('loggedInUser', JSON.stringify({ username }));
+                        document.getElementById('user-name').textContent = username;
+                        document.getElementById('progress-status').textContent = data.progress;
+                        document.getElementById('progress-info').style.display = 'block';
+                        console.log("Progress loaded via proxy:", data);
+
+                        setTimeout(() => {
+                            window.location.href = 'home.html';
+                        }, 1500);
+                    } else if (data.error) {
+                        alert(data.error);
+                    }
+                })
+                .catch(err => {
+                    console.error("Error during proxy fetch:", err);
+                    alert("An error occurred or invalid response. Please ensure your proxy function is deployed, named correctly, and reachable.");
+                });
+        });
+    </script>
+</body>
+</html>
+
