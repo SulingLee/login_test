@@ -8,22 +8,11 @@ export async function handler(event, context) {
     };
   }
 
-  const url = `https://script.google.com/macros/s/AKfycbyddGzZFn986Op3g5Bn-CeIlkR-7puveZeDeuVjQfeUZgh1UaxJCF09NkN2_atmjxmkUQ/exec?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&setpassword=${setpassword}`;
+  const url = `https://script.google.com/macros/s/AKfycbx538eGHClMVCTC4dwBAgniP8UT7jadzqdZnEsrgbCHnFAVBHKxpolTMXoJfZdpQfMmXw/exec?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&setpassword=${setpassword}`;
 
-  try {
+   try {
     const response = await fetch(url);
-    const text = await response.text();
-
-    // Attempt to parse <pre> wrapped JSON
-    const jsonMatch = text.match(/<pre>([\s\S]*)<\/pre>/);
-    let data;
-
-    if (jsonMatch && jsonMatch[1]) {
-      data = JSON.parse(jsonMatch[1]);
-    } else {
-      // fallback if response was plain JSON
-      data = JSON.parse(text);
-    }
+    const data = await response.json();  // parse directly as JSON now!
 
     return {
       statusCode: 200,
@@ -40,4 +29,3 @@ export async function handler(event, context) {
     };
   }
 }
-
